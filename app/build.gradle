@@ -98,6 +98,13 @@ android {
             buildConfigField "boolean", "IN_APP_UPDATES", "true"
             buildConfigField "boolean", "SUPPORTS_RUNTIME_CHANGES", "true"
         }
+        split {
+            dimension = 'CHANNEL'
+            applicationIdSuffix = '.split'
+            manifestPlaceholders.APP_NAME = 'KOReader Split'
+            buildConfigField "String", "APP_NAME", '"KOReader-Split"'
+            buildConfigField "boolean", "SUPPORTS_RUNTIME_CHANGES", "true"
+        }
     }
 
     packagingOptions {
