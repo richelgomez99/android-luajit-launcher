@@ -59,6 +59,7 @@ interface LuaInterface {
     fun isEink(): Boolean
     fun isEinkFull(): Boolean
     fun isFullscreen(): Boolean
+    fun isInMultiWindowMode(): Boolean
     fun isPackageEnabled(pkg: String): Boolean
     fun isPathInsideSandbox(path: String): Boolean
     fun isActivityResumed(): Boolean
