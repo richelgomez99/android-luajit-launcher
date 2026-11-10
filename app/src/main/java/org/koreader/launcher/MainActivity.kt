@@ -255,15 +255,6 @@ class MainActivity : NativeActivity(), LuaInterface,
         }
     }
 
-    /* Called on configuration changes declared in the manifest (size, orientation, ...) */
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        Log.v(TAG_SURFACE, String.format(Locale.US,
-            "configuration changed: %dx%d dp, surface: %dx%d, multi-window: %b",
-            newConfig.screenWidthDp, newConfig.screenHeightDp,
-            surfaceWidth, surfaceHeight, isMultiWindow()))
-        super.onConfigurationChanged(newConfig)
-    }
-
     /* Called when the activity enters or leaves multi-window mode, API 26+ */
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onMultiWindowModeChanged(inMultiWindow: Boolean, newConfig: Configuration) {
