@@ -38,11 +38,10 @@
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/SplashScreen"
-            android:resizeableActivity="false"
+            android:resizeableActivity="true"
             android:screenOrientation="nosensor"
             android:launchMode="singleInstance"
-            android:configChanges="colorMode|density|fontScale|keyboard|keyboardHidden|layoutDirection|locale|mcc|mnc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|touchscreen|uiMode"
-            tools:ignore="NonResizeableActivity">
+            android:configChanges="colorMode|density|fontScale|keyboard|keyboardHidden|layoutDirection|locale|mcc|mnc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|touchscreen|uiMode">
             <meta-data android:name="android.app.lib_name" android:value="luajit-launcher" />
             <meta-data android:name="android.supports_size_changes" android:value="true" />
             <intent-filter>

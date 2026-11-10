@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.*
@@ -47,6 +48,10 @@ class MainActivity : NativeActivity(), LuaInterface,
 
     // Device cutout - only used on API 28+
     private var topInsetHeight: Int = 0
+
+    // Surface size, used as screen size in multi-window mode
+    @Volatile private var surfaceWidth: Int = 0
+    @Volatile private var surfaceHeight: Int = 0
 
     // Fullscreen - only used on API levels 16-18
     private var fullscreen: Boolean = true
@@ -134,7 +139,12 @@ class MainActivity : NativeActivity(), LuaInterface,
         Log.v(TAG_SURFACE, "Using $surfaceKind implementation")
 
         @Suppress("DEPRECATION")
-        screenIsLandscape = windowManager.defaultDisplay.width > windowManager.defaultDisplay.height
+        screenIsLandscape = if (isMultiWindow()) {
+            // the window shape says nothing about the device: use the display natural orientation
+            isNaturalOrientationLandscape()
+        } else {
+            windowManager.defaultDisplay.width > windowManager.defaultDisplay.height
+        }
 
         Log.v(tag, String.format(Locale.US,
             "native orientation: %s", if (this.screenIsLandscape) "landscape" else "portrait"))
@@ -170,9 +180,12 @@ class MainActivity : NativeActivity(), LuaInterface,
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
         Log.v(TAG_SURFACE, String.format(Locale.US,
-            "surface changed {\n  width:  %d\n  height: %d\n  format: %s\n}",
-            width, height, pixelFormatName(format))
+            "surface changed {\n  width:  %d\n  height: %d\n  format: %s\n  multi-window: %b\n}",
+            width, height, pixelFormatName(format), isMultiWindow())
         )
+
+        surfaceWidth = width
+        surfaceHeight = height
 
         super.surfaceChanged(holder, format, width, height)
         drawSplashScreen(holder)
@@ -240,6 +253,25 @@ class MainActivity : NativeActivity(), LuaInterface,
                 } else resultData.data?.toFile(this, importPath)
             }
         }
+    }
+
+    /* Called on configuration changes declared in the manifest (size, orientation, ...) */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        Log.v(TAG_SURFACE, String.format(Locale.US,
+            "configuration changed: %dx%d dp, surface: %dx%d, multi-window: %b",
+            newConfig.screenWidthDp, newConfig.screenHeightDp,
+            surfaceWidth, surfaceHeight, isMultiWindow()))
+        super.onConfigurationChanged(newConfig)
+    }
+
+    /* Called when the activity enters or leaves multi-window mode, API 26+ */
+    @RequiresApi(Build.VERSION_CODES.O)
+    override fun onMultiWindowModeChanged(inMultiWindow: Boolean, newConfig: Configuration) {
+        Log.v(TAG_SURFACE, String.format(Locale.US,
+            "multi-window mode changed: %b, surface: %dx%d",
+            inMultiWindow, surfaceWidth, surfaceHeight))
+        super.onMultiWindowModeChanged(inMultiWindow, newConfig)
+        setFullscreenLayout()
     }
 
     /* Called when the activity focus changes */
@@ -455,6 +487,10 @@ class MainActivity : NativeActivity(), LuaInterface,
     }
 
     override fun getScreenHeight(): Int {
+        if (isMultiWindow() && surfaceHeight > 0) {
+            // In multi-window mode the screen is our window: no notch to handle
+            return surfaceHeight
+        }
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             // We need to handle the notch in Portrait
             // NOTE: getScreenAvailableHeight does it automatically, but it also excludes the nav bar, when there's one :/
@@ -494,6 +530,10 @@ class MainActivity : NativeActivity(), LuaInterface,
     }
 
     override fun getScreenWidth(): Int {
+        if (isMultiWindow() && surfaceWidth > 0) {
+            // In multi-window mode the screen is our window: no notch to handle
+            return surfaceWidth
+        }
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             // We need to handle the notch in Landscape
             // NOTE: getScreenAvailableWidth does it automatically, but it also excludes the nav bar, when there's one :/
@@ -591,6 +631,10 @@ class MainActivity : NativeActivity(), LuaInterface,
         } else {
             false
         }
+    }
+
+    override fun isInMultiWindowMode(): Boolean {
+        return isMultiWindow()
     }
 
     override fun isPackageEnabled(pkg: String): Boolean {
@@ -820,10 +864,23 @@ class MainActivity : NativeActivity(), LuaInterface,
         }
     }
 
+    private fun isMultiWindow(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && super<NativeActivity>.isInMultiWindowMode()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun isNaturalOrientationLandscape(): Boolean {
+        val rotation = windowManager.defaultDisplay.rotation
+        val rotated = (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270)
+        return (getWidth() > getHeight()) != rotated
+    }
+
     @Suppress("DEPRECATION")
     private fun setFullscreenLayout() {
         val decorView = window.decorView
         when {
+            // In multi-window mode don't hide system bars nor layout under them
+            isMultiWindow() -> decorView.systemUiVisibility = 0
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT ->
                 decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or
                     View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or

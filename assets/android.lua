@@ -2298,6 +2298,18 @@ local function run(android_app_state)
         end)
     end
 
+    --- Multi-window (split-screen, freeform) state.
+    -- @treturn bool true if the activity is in multi-window mode (always false below API 24)
+    android.isInMultiWindowMode = function()
+        return JNI:context(android.app.activity.vm, function(jni)
+            return jni:callBooleanMethod(
+                android.app.activity.clazz,
+                "isInMultiWindowMode",
+                "()Z"
+            )
+        end)
+    end
+
     android.setFullscreen = function(fullscreen)
         android.DEBUG("setting fullscreen to " .. tostring(fullscreen))
         JNI:context(android.app.activity.vm, function(jni)
